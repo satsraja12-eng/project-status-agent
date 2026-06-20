@@ -119,3 +119,78 @@ sequenceDiagram
     Graph-->>UI: Return control (Finish)
     UI->>User: Show success checkmark + enable report downloads
 ```
+
+---
+
+## 🧠 Components & Data Flow (How ReAct, Mem0, SQLite, and ChromaDB are involved)
+
+Here is a detailed breakdown of how each component is involved during different stages of the application lifecycle:
+
+### 1. SQLite Database (`project_status.db`)
+* **When it is involved**: Ground-truth data storage.
+* **Usage**:
+  - Used by `list_tasks_tool` and `filter_blockers_tool` to query active tasks and dependencies.
+  - Used by the Streamlit dashboard to render KPI cards, Plotly stacked bar charts, and timeline stages.
+  - Used by the `save_report_node` to save the final approved markdown report.
+
+### 2. ChromaDB (Local Vector Database)
+* **When it is involved**: Historical report search and week-over-week trend analysis.
+* **Usage**:
+  - When the report is approved (`save_report_node`), it is embedded using the `BAAI/bge-small-en-v1.5` local model and stored inside the `chroma_db/` folder.
+  - When the ReAct Agent is asked about past performance trends, it triggers `memory_search_tool` to run a semantic search across the ChromaDB database to retrieve the top 3 matching report snippets.
+
+### 3. Mem0 Cloud (Atomic Memory Engine)
+* **When it is involved**: Guidelines, calendars, and user-defined operational rules storage.
+* **Usage**:
+  - When a user inputs a rule in the **Operational Rules** panel, it is saved directly to Mem0 Cloud via `mem0_client.add()`.
+  - When the ReAct Agent is asked a question, it queries Mem0 Cloud using `memory_search_tool` to pull relevant facts.
+  - The ReAct Agent can autonomously add facts from conversation context by invoking `add_memory_tool`.
+
+---
+
+### 💬 ReAct Chat Loop & Memory Interaction
+
+When a user asks a question in the **AI Assistant Chat**, Llama 3.3 acts as a reasoning engine, deciding dynamically which tools to run to compile the answer:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Chatbot as Streamlit Chat UI
+    participant ReAct as ReAct Agent (Llama 3.3)
+    participant Tools as Custom Tools
+    participant DB as SQLite DB
+    participant Chroma as ChromaDB Vector Store
+    participant Mem0 as Mem0 Cloud Memory
+
+    User->>Chatbot: Ask "Who leads the upgrade project and what is blocked?"
+    Chatbot->>ReAct: query_chatbot(message, history)
+    activate ReAct
+    
+    Note over ReAct: Decide to query Mem0 for project roles/rules
+    ReAct->>Tools: Call memory_search_tool("Lead of upgrade project")
+    activate Tools
+    Tools->>Mem0: Fetch facts matching query
+    Mem0-->>Tools: Return "Sathish is the Lead Architect"
+    deactivate Tools
+    
+    Note over ReAct: Decide to check current sprint blockers
+    ReAct->>Tools: Call filter_blockers_tool()
+    activate Tools
+    Tools->>DB: Query issue backlog for Blocked state
+    DB-->>Tools: Return "PLANE-2 Kafka Registry is Blocked"
+    deactivate Tools
+
+    Note over ReAct: Decide to search ChromaDB for past blocker trends
+    ReAct->>Tools: Call memory_search_tool("Kafka blockers")
+    activate Tools
+    Tools->>Chroma: Query similar past report snippets
+    Chroma-->>Tools: Return "Week of June 8: Kafka registry configuration stalled"
+    deactivate Tools
+
+    Note over ReAct: Synthesize facts, tasks, and trends into final response
+    ReAct-->>Chatbot: Return structured markdown answer
+    deactivate ReAct
+    Chatbot->>User: Display answer: "Sathish leads... PLANE-2 is blocked (stalled since June 8)"
+```
+

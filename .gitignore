@@ -1,0 +1,26 @@
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Environment secrets
+.env
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Databases & Vector store data
+*.db
+*.sqlite3
+chroma_db/
+last_sync.txt
+
+# Streamlit
+.streamlit/
+
+# OS files
+.DS_Store

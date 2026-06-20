@@ -1,0 +1,31 @@
+[project]
+name = "project-status-agent"
+version = "0.1.0"
+description = "Agentic Intelligent Project Status Agent using LangGraph, Mem0, and Plane"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "streamlit>=1.35.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "yfinance>=0.2.40",
+    "groq>=0.9.0",
+    "scipy>=1.10.0",
+    "python-dotenv>=1.0.0",
+    "plotly>=5.15.0",
+    "sqlalchemy>=2.0.50",
+    "bcrypt>=5.0.0",
+    "pymupdf>=1.27.2.3",
+    "langchain>=1.3.7",
+    "langchain-community>=0.4.2",
+    "langchain-openai>=1.3.0",
+    "pinecone-client>=6.0.0",
+    "chromadb>=1.5.9",
+    "langchain-chroma>=1.1.0",
+    "langchain-huggingface>=1.2.2",
+    "sentence-transformers>=5.5.1",
+    "rank-bm25>=0.2.2",
+    "langgraph>=1.2.4",
+    "mem0ai>=2.0.7",
+]
+

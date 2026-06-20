@@ -39,8 +39,7 @@ graph TD
         Dashboard["📊 Dashboard & Metrics"]:::ui
         IssuesManager["🗂️ Issues Manager & CRUD"]:::ui
         ReportGenerator["📝 Report Generator (HITL)"]:::ui
-        Chatbot["💬 AI Assistant Chat"]:::ui
-        MemoryManager["🧠 Memory Manager"]:::ui
+        Chatbot["💬 AI Assistant Chat & Rules Manager"]:::ui
     end
 
     subgraph AgentEngine ["Agent & Orchestration (LangGraph / LangChain)"]
@@ -73,7 +72,7 @@ graph TD
     IssuesManager -- "PlaneClient API requests" --> PlaneAPI["Plane.so Cloud / Self-Hosted"]:::api
     ReportGenerator --> ReportGraph
     Chatbot --> ChatLoop
-    MemoryManager --> Mem0
+    Chatbot -- "Manage Rules" --> Mem0
 
     %% Graph Connections
     ReportGraph --> Tools

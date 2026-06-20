@@ -43,7 +43,13 @@ graph TD
     end
 
     subgraph AgentEngine ["Agent & Orchestration (LangGraph / LangChain)"]
-        ReportGraph["Report State Graph"]:::engine
+        subgraph ReportGraph ["Report State Graph"]
+            Node1["Node 1: retrieve_context"]:::engine
+            Node2["Node 2: draft_report"]:::engine
+            Node3["Node 3: human_review (Breakpoint)"]:::engine
+            Node4["Node 4: save_report"]:::engine
+            Node1 --> Node2 --> Node3 --> Node4
+        end
         ChatLoop["ReAct Chat Loop"]:::engine
         
         subgraph Tools ["Custom LangChain Tools"]
@@ -70,12 +76,13 @@ graph TD
     Dashboard --> SQLite
     IssuesManager --> SQLite
     IssuesManager -- "PlaneClient API requests" --> PlaneAPI["Plane.so Cloud / Self-Hosted"]:::api
-    ReportGenerator --> ReportGraph
+    ReportGenerator --> Node1
     Chatbot --> ChatLoop
     Chatbot -- "Manage Rules" --> Mem0
 
     %% Graph Connections
-    ReportGraph --> Tools
+    Node1 --> Tools
+    Node4 --> Tools
     ChatLoop --> Tools
     
     %% Tool Connections
@@ -90,7 +97,7 @@ graph TD
     AddMemory --> Mem0
 
     %% Model Connections
-    ReportGraph --> Llama
+    Node2 --> Llama
     ChatLoop --> Llama
     MemorySearch --> BGE
     SaveReport --> BGE
@@ -107,10 +114,10 @@ graph TD
 
 #### B. Orchestration Engine (LangGraph: `agent_engine.py`)
 * **ReportState Graph**: Maps the weekly status generation pipeline.
-  - `retrieve_context`: Fetches active sprint tasks and searches historical report summaries.
-  - `draft_report`: Constructs a structured markdown status draft using Llama 3.3.
-  - `human_review`: Halts execution at a **LangGraph checkpoint breakpoint** using memory checkpointers. It waits for the user to provide edits or click approve.
-  - `save_report`: Commits the approved report text to SQLite and indexes it in ChromaDB and Mem0 Cloud.
+  - **Node 1: `retrieve_context`**: Fetches active sprint tasks from SQLite and queries historical reports from ChromaDB.
+  - **Node 2: `draft_report`**: Constructs a structured markdown status draft using Llama 3.3.
+  - **Node 3: `human_review`**: Halts execution at a **LangGraph checkpoint breakpoint** using memory checkpointers, waiting for human edits or approval.
+  - **Node 4: `save_report`**: Commits the approved report text to the SQLite database and indexes it in ChromaDB and Mem0 Cloud.
 * **ReAct Chat Loop**: Binds `CHAT_TOOLS` (including `add_memory_tool`) to Llama 3.3. It parses user requests, determines which tools to execute, runs them, and provides a conversational markdown answer.
 
 #### C. Database Layer (SQLite: `db_manager.py`)

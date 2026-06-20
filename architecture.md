@@ -135,6 +135,43 @@ graph TD
 
 ---
 
+## 🔌 Extensibility & Decoupling (Jira, Asana, or Notion Integration)
+
+The architecture is designed using an **Adapter Pattern** to completely decouple the project tracking provider (Plane, Jira, Asana, etc.) from the core AI Agent and UI layers:
+
+```mermaid
+graph LR
+    classDef client fill:#1F2937,stroke:#EF4444,stroke-width:2px,color:#FFF;
+    classDef db fill:#111827,stroke:#10B981,stroke-width:2px,color:#FFF;
+    classDef core fill:#0F172A,stroke:#8B5CF6,stroke-width:2px,color:#FFF;
+
+    PlaneAPI["✈️ Plane API"]:::client --> PlaneClient["plane_client.py (Adapter)"]:::client
+    JiraAPI["🔵 Jira API"]:::client -.-> JiraClient["jira_client.py (Future Adapter)"]:::client
+    AsanaAPI["🔴 Asana API"]:::client -.-> AsanaClient["asana_client.py (Future Adapter)"]:::client
+
+    PlaneClient --> SQLite["🗄️ SQLite Database (Unified Schema)"]:::db
+    JiraClient -.-> SQLite
+    AsanaClient -.-> SQLite
+
+    SQLite --> Agent["🤖 LangGraph Agent & Tools"]:::core
+    SQLite --> Dashboard["🖥️ Streamlit UI"]:::core
+```
+
+### Why Integration is Seamless:
+1. **Unified Schema**: The core agent tools (`list_tasks_tool`, `filter_blockers_tool`) and Streamlit charts query a local **SQLite Database** schema (`issues` and `projects`) rather than calling external APIs on-the-fly.
+2. **Zero Agent Changes**: The stateful LangGraph orchestrator, ReAct chatbot, and tools are **completely provider-agnostic**. They do not contain any Plane-specific logic.
+3. **How to Repurpose for Jira or Asana**:
+   - Write a new API client class (e.g. `JiraClient` or `AsanaClient`) similar to `PlaneClient` that handles authentication and fetches active sprint issues.
+   - Map the external fields (e.g. status, priority, description, assignee, cycle) into our standardized dictionary structure.
+   - Run a sync script (analogous to `sync_plane.py`) that deletes existing records for the target project and inserts the normalized records using the unified SQL statement:
+     ```sql
+     INSERT OR REPLACE INTO issues (id, project_id, name, assignee, status, priority, cycle, description, blocker_details)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ```
+   - On sync, the dashboard metrics, timeline charts, weekly reports, and chatbot will load the Jira or Asana data instantly with **zero edits to the dashboard or agent logic**.
+
+---
+
 ## 🚀 How to Run and Validate
 
 Follow these steps to run the test suite and launch the application:
